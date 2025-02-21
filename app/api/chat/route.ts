@@ -1,5 +1,10 @@
 import OpenAI from 'openai'
 
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 const openai = new OpenAI({
   apiKey: process.env.AZURE_OPENAI_API_KEY,
   baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME}`,
@@ -9,13 +14,13 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json()
+    const { messages } = await req.json() as { messages: ChatMessage[] }
     
     console.log('Sending request with messages:', messages);
 
     const response = await openai.chat.completions.create({
       model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME!,
-      messages: messages.map((msg: any) => ({
+      messages: messages.map((msg: ChatMessage) => ({
         role: msg.role,
         content: msg.content
       })),

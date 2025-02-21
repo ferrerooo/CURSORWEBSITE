@@ -6,7 +6,7 @@ import { SendIcon } from 'lucide-react'
 interface Message {
   role: 'user' | 'assistant'
   content: string
-  timestamp?: number
+  id: string        // 使用唯一ID替代时间戳
 }
 
 export default function ChatPage() {
@@ -18,7 +18,7 @@ export default function ChatPage() {
     setMessages([{
       role: 'assistant',
       content: '你好！我是AI助手，很高兴为您服务。请问有什么我可以帮您的吗？',
-      timestamp: Date.now()
+      id: 'welcome'
     }])
   }, [])
 
@@ -29,7 +29,7 @@ export default function ChatPage() {
     const userMessage: Message = {
       role: 'user',
       content: input,
-      timestamp: Date.now()
+      id: `user-${Date.now()}`  // 仅用于生成唯一ID
     }
     setMessages(prev => [...prev, userMessage])
     setInput('')
@@ -52,13 +52,17 @@ export default function ChatPage() {
       if (!response.ok) throw new Error('Failed to fetch response')
       
       const data = await response.json()
-      setMessages(prev => [...prev, { role: 'assistant', content: data.content, timestamp: Date.now() }])
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: data.content,
+        id: `assistant-${Date.now()}`  // 仅用于生成唯一ID
+      }])
     } catch (error) {
       console.error('Error:', error)
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: '抱歉，发生了一些错误。请稍后再试。',
-        timestamp: Date.now()
+        id: `error-${Date.now()}`  // 仅用于生成唯一ID
       }])
     } finally {
       setIsLoading(false)
@@ -89,9 +93,9 @@ export default function ChatPage() {
             <p>开始与AI助手对话吧！</p>
           </div>
         ) : (
-          messages.map((message, index) => (
+          messages.map((message) => (
             <div
-              key={index}
+              key={message.id}  // 使用唯一ID作为key
               className={`flex ${
                 message.role === 'user' ? 'justify-end' : 'justify-start'
               }`}
@@ -104,9 +108,6 @@ export default function ChatPage() {
                 }`}
               >
                 {message.content}
-                <div className="text-xs opacity-50 mt-1">
-                  {new Date(message.timestamp || Date.now()).toLocaleTimeString()}
-                </div>
               </div>
             </div>
           ))
