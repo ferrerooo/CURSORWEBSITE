@@ -17,7 +17,7 @@ export default function LoginPage() {
     try {
       await signIn(email, password)
       router.push('/chat')
-    } catch (error) {
+    } catch (err) {
       setError('登录失败，请检查邮箱和密码')
     }
   }
@@ -26,7 +26,7 @@ export default function LoginPage() {
     try {
       await signInWithGoogle()
       router.push('/chat')
-    } catch (error) {
+    } catch (err) {
       setError('Google 登录失败，请重试')
     }
   }

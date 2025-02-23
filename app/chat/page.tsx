@@ -4,8 +4,10 @@ import { useState, useEffect, useRef } from 'react'
 import { SendIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { collection, addDoc, query, where, orderBy, getDocs } from 'firebase/firestore'
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import Image from 'next/image'
+import { User } from 'firebase/auth'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -14,13 +16,15 @@ interface Message {
 }
 
 // 添加一个用户信息组件
-function UserInfo({ user }: { user: User }) {
-  // 获取显示名称：优先使用 displayName，如果没有就用 email
+function UserInfo({ user, logout, router }: { 
+  user: User, 
+  logout: () => Promise<void>,
+  router: any 
+}) {
   const displayName = user.displayName || user.email?.split('@')[0] || 'User'
   
   return (
     <div className="flex items-center gap-3">
-      {/* 如果有头像就显示头像 */}
       {user.photoURL ? (
         <img 
           src={user.photoURL} 
@@ -186,7 +190,7 @@ export default function ChatPage() {
       {/* Chat Header */}
       <header className="border-b border-gray-700 p-4 flex justify-between items-center">
         <h1 className="text-xl font-semibold text-white">AI 助手</h1>
-        {user && <UserInfo user={user} />}
+        {user && <UserInfo user={user} logout={logout} router={router} />}
       </header>
 
       {/* Chat Messages */}
