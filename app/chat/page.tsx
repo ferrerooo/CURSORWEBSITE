@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { SendIcon } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
+import { collection, addDoc, query, where, orderBy, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -9,7 +13,49 @@ interface Message {
   id: string        // 使用唯一ID替代时间戳
 }
 
+// 添加一个用户信息组件
+function UserInfo({ user }: { user: User }) {
+  // 获取显示名称：优先使用 displayName，如果没有就用 email
+  const displayName = user.displayName || user.email?.split('@')[0] || 'User'
+  
+  return (
+    <div className="flex items-center gap-3">
+      {/* 如果有头像就显示头像 */}
+      {user.photoURL ? (
+        <img 
+          src={user.photoURL} 
+          alt="Profile" 
+          className="w-8 h-8 rounded-full"
+        />
+      ) : (
+        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
+          {displayName[0].toUpperCase()}
+        </div>
+      )}
+      <span className="text-gray-300">{displayName}</span>
+      <button
+        onClick={() => {
+          logout();
+          router.push('/login');
+        }}
+        className="text-gray-400 hover:text-white ml-4"
+      >
+        退出登录
+      </button>
+    </div>
+  )
+}
+
 export default function ChatPage() {
+  const { user, loading, logout } = useAuth()
+  const router = useRouter()
+  
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login')
+    }
+  }, [user, loading, router])
+
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -22,15 +68,52 @@ export default function ChatPage() {
     }])
   }, [])
 
+  // Load chat history
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!user) return
+
+      const chatRef = collection(db, 'chats')
+      const q = query(
+        chatRef,
+        where('userId', '==', user.uid)
+      )
+
+      const querySnapshot = await getDocs(q)
+      const history = querySnapshot.docs
+        .map(doc => ({
+          role: doc.data().role,
+          content: doc.data().content,
+          id: doc.id,
+          timestamp: doc.data().timestamp
+        }))
+        // 在客户端进行排序
+        .sort((a, b) => a.timestamp - b.timestamp)
+
+      setMessages(history)
+    }
+
+    loadChatHistory()
+  }, [user])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || isLoading) return
+    if (!input.trim() || isLoading || !user) return
     
-    const userMessage: Message = {
-      role: 'user',
+    const userMessage = {
+      role: 'user' as const,
       content: input,
-      id: `user-${Date.now()}`  // 仅用于生成唯一ID
+      id: `user-${Date.now()}`
     }
+
+    // Save user message to Firestore
+    await addDoc(collection(db, 'chats'), {
+      userId: user.uid,
+      role: userMessage.role,
+      content: userMessage.content,
+      timestamp: Date.now()
+    })
+
     setMessages(prev => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
@@ -52,18 +135,37 @@ export default function ChatPage() {
       if (!response.ok) throw new Error('Failed to fetch response')
       
       const data = await response.json()
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
+      const assistantMessage = {
+        role: 'assistant' as const,
         content: data.content,
-        id: `assistant-${Date.now()}`  // 仅用于生成唯一ID
-      }])
+        id: `assistant-${Date.now()}`
+      }
+
+      // Save assistant message to Firestore
+      await addDoc(collection(db, 'chats'), {
+        userId: user.uid,
+        role: assistantMessage.role,
+        content: assistantMessage.content,
+        timestamp: Date.now()
+      })
+
+      setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
       console.error('Error:', error)
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
+      const errorMessage = {
+        role: 'assistant' as const,
         content: '抱歉，发生了一些错误。请稍后再试。',
-        id: `error-${Date.now()}`  // 仅用于生成唯一ID
-      }])
+        id: `error-${Date.now()}`
+      }
+
+      await addDoc(collection(db, 'chats'), {
+        userId: user.uid,
+        role: errorMessage.role,
+        content: errorMessage.content,
+        timestamp: Date.now()
+      })
+
+      setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
     }
@@ -82,8 +184,9 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen flex-col bg-gray-900">
       {/* Chat Header */}
-      <header className="border-b border-gray-700 p-4">
+      <header className="border-b border-gray-700 p-4 flex justify-between items-center">
         <h1 className="text-xl font-semibold text-white">AI 助手</h1>
+        {user && <UserInfo user={user} />}
       </header>
 
       {/* Chat Messages */}
