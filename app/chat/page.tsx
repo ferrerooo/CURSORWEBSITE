@@ -6,8 +6,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import Image from 'next/image'
 import { User } from 'firebase/auth'
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -19,7 +19,7 @@ interface Message {
 function UserInfo({ user, logout, router }: { 
   user: User, 
   logout: () => Promise<void>,
-  router: any 
+  router: AppRouterInstance
 }) {
   const displayName = user.displayName || user.email?.split('@')[0] || 'User'
   
