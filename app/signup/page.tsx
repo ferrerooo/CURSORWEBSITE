@@ -17,7 +17,8 @@ export default function SignUpPage() {
     try {
       await signUp(email, password)
       router.push('/chat')
-    } catch (_err) {
+    } catch (err) {
+      console.error('Signup error:', err)
       setError('注册失败，请重试')
     }
   }
@@ -26,7 +27,8 @@ export default function SignUpPage() {
     try {
       await signInWithGoogle()
       router.push('/chat')
-    } catch (_err) {
+    } catch (err) {
+      console.error('Google sign-in error:', err)
       setError('Google 登录失败，请重试')
     }
   }

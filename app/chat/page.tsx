@@ -25,17 +25,9 @@ function UserInfo({ user, logout, router }: {
   
   return (
     <div className="flex items-center gap-3">
-      {user.photoURL ? (
-        <img 
-          src={user.photoURL} 
-          alt="Profile" 
-          className="w-8 h-8 rounded-full"
-        />
-      ) : (
-        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
-          {displayName[0].toUpperCase()}
-        </div>
-      )}
+      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
+        {displayName[0].toUpperCase()}
+      </div>
       <span className="text-gray-300">{displayName}</span>
       <button
         onClick={() => {
